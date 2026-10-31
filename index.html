@@ -6,6 +6,8 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#04050b">
 <title>The Moon</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
@@ -104,11 +106,24 @@
     background: radial-gradient(circle at 40% 38%, #fffaf0, #e2d6b4); box-shadow: 0 0 16px rgba(243, 232, 200, 0.6);
   }
   input[type=range]:focus-visible { outline: 1px dashed var(--faint); outline-offset: 6px; }
-  .reset {
-    font: inherit; font-style: italic; font-size: 1rem; color: var(--muted);
-    background: none; border: 0; border-bottom: 1px solid var(--line); padding: 4px 2px; cursor: pointer;
+  .scrub-out .date { color: var(--gold); opacity: 0.85; font-size: 1.05rem; letter-spacing: 0.06em; }
+  .steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .steps button, .pick input, #jump {
+    font: inherit; font-size: 1rem; color: var(--ink); cursor: pointer;
+    background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); border-radius: 999px;
+    padding: 6px 14px; min-height: 40px;
   }
-  .reset:hover { color: var(--ink); }
+  .steps button:hover, #jump:hover { background: rgba(255, 255, 255, 0.09); }
+  .steps button { padding: 6px 10px; }
+  #reset { font-style: italic; color: var(--gold); border-color: rgba(217, 199, 156, 0.35); }
+  .pick { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 6px; }
+  .pick label {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    color: var(--muted); font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .pick input, #jump { border-radius: 10px; color-scheme: dark; }
+  #jump { max-width: 100%; }
+  #jump option, #jump optgroup { background: #11162f; color: var(--ink); }
 
   footer { padding: 40px 16px 72px; text-align: center; color: var(--faint); font-style: italic; font-size: 1.05rem; }
   footer .wink { display: block; margin-top: 10px; font-size: 0.85rem; opacity: 0.7; }
@@ -167,12 +182,24 @@
   <section class="block scrub reveal">
     <h2 data-t="scrub"></h2>
     <div class="small-moon"><canvas id="scrub-moon" role="img"></canvas></div>
-    <input type="range" id="scrub" min="0" max="1000" step="1" aria-labelledby="scrub-label">
     <div class="scrub-out">
+      <p class="date" id="scrub-date"></p>
       <p class="ph" id="scrub-label"></p>
       <p class="meta" id="scrub-meta"></p>
     </div>
-    <button class="reset" id="reset" data-t="today"></button>
+    <input type="range" id="scrub" min="0" max="1000" step="1" aria-labelledby="scrub-label">
+    <div class="steps">
+      <button data-step="-7" data-t="weekBack"></button>
+      <button data-step="-1" data-t="dayBack"></button>
+      <button id="reset" data-t="today"></button>
+      <button data-step="1" data-t="dayFwd"></button>
+      <button data-step="7" data-t="weekFwd"></button>
+    </div>
+    <div class="pick">
+      <label><span data-t="dateLabel"></span><input type="date" id="pick-date"></label>
+      <label><span data-t="timeLabel"></span><input type="time" id="pick-time"></label>
+    </div>
+    <select id="jump"></select>
   </section>
 </main>
 
@@ -201,8 +228,15 @@ const STRINGS = {
     born: "Your birth moon.",
     met: "The moon on the night we met.",
     dinner: "The moon when I kissed you.",
-    scrub: "Drag the moon through its month.",
-    today: "back to tonight",
+    scrub: "Look up the moon on any night.",
+    today: "tonight",
+    weekBack: "‹ week", dayBack: "‹ day", dayFwd: "day ›", weekFwd: "week ›",
+    dateLabel: "date", timeLabel: "time",
+    jump: "Jump to…", ourNights: "Our nights", moonGroup: "The moon",
+    jumpBorn: (y) => `Your birthday (${y})`, jumpNextBday: "Your next birthday",
+    jumpMet: "The night we met", jumpDinner: "When I kissed you",
+    prevNew: "Previous new moon", prevFull: "Previous full moon",
+    nextNew: "Next new moon", nextFull: "Next full moon",
     footer: "I made this because you like the moon.",
     lit: (p) => `${p}% lit`,
     day: (d) => `day ${d} of 29.5`,
@@ -215,8 +249,15 @@ const STRINGS = {
     born: "Mjesec pod kojim si rođena.",
     met: "Mjesec one noći kad smo se upoznali.",
     dinner: "Mjesec na onoj večeri.",
-    scrub: "Provuci mjesec kroz sve njegove mijene.",
-    today: "nazad na večeras",
+    scrub: "Pogledaj mjesec bilo koje noći.",
+    today: "večeras",
+    weekBack: "‹ sedmica", dayBack: "‹ dan", dayFwd: "dan ›", weekFwd: "sedmica ›",
+    dateLabel: "datum", timeLabel: "vrijeme",
+    jump: "Skoči na…", ourNights: "Naše noći", moonGroup: "Mjesec",
+    jumpBorn: (y) => `Tvoj rođendan (${y})`, jumpNextBday: "Tvoj sljedeći rođendan",
+    jumpMet: "Noć kad smo se upoznali", jumpDinner: "Kad sam te poljubio",
+    prevNew: "Prethodni mlađak", prevFull: "Prethodni pun mjesec",
+    nextNew: "Sljedeći mlađak", nextFull: "Sljedeći pun mjesec",
     footer: "Napravio sam ovo jer voliš mjesec.",
     lit: (p) => `${p}% osvijetljen`,
     day: (d) => `${d}. dan od 29,5`,
@@ -626,26 +667,105 @@ function heroText() {
 }
 const renderHero = () => { heroText(); drawMoon(heroCv, heroFrac); };
 
+/* ---------- explorer: any date, any time ---------- */
+const DAY = 86400000;
 const scrub = document.getElementById("scrub");
 const scrubCv = document.getElementById("scrub-moon");
-function scrubText() {
-  const info = phaseInfo(scrub.value / 1000);
-  document.getElementById("scrub-label").textContent = info.name;
-  document.getElementById("scrub-meta").textContent = T.lit(Math.round(info.illumination * 100));
-  scrubCv.setAttribute("aria-label", describe(info));
-  return info;
+const pickDate = document.getElementById("pick-date");
+const pickTime = document.getElementById("pick-time");
+const jump = document.getElementById("jump");
+const fmtLong = new Intl.DateTimeFormat(T.locale, {
+  weekday: "long", day: "numeric", month: "long", year: "numeric",
+  hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Sarajevo",
+});
+const fmtParts = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric", month: "2-digit", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone: "Europe/Sarajevo",
+});
+function localParts(date) {
+  const p = Object.fromEntries(fmtParts.formatToParts(date).map((x) => [x.type, x.value]));
+  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}` };
 }
-const renderScrub = () => drawMoon(scrubCv, scrubText().frac);
-let scrubQueued = false;
+
+let exploreAt = new Date(), drawQueued = false;
+const renderScrub = () => drawMoon(scrubCv, moonInfo(exploreAt).frac);
+function explore(date, fromSlider = false) {
+  if (isNaN(date)) return;
+  exploreAt = date;
+  const info = moonInfo(date);
+  document.getElementById("scrub-date").textContent = fmtLong.format(date);
+  document.getElementById("scrub-label").textContent = info.name;
+  document.getElementById("scrub-meta").textContent =
+    `${T.lit(Math.round(info.illumination * 100))} · ${T.day(Math.floor(info.age) + 1)}`;
+  scrubCv.setAttribute("aria-label", describe(info));
+  if (!fromSlider) scrub.value = Math.round(info.frac * 1000);
+  const p = localParts(date);
+  if (document.activeElement !== pickDate) pickDate.value = p.date;
+  if (document.activeElement !== pickTime) pickTime.value = p.time;
+  if (drawQueued) return;
+  drawQueued = true;
+  requestAnimationFrame(() => { drawQueued = false; renderScrub(); });
+}
+
+// nearest new (0) or full (0.5) moon before or after a date
+function phaseFrom(date, target, dir) {
+  let d = target * SYNODIC - moonAge(date);
+  d = ((d % SYNODIC) + SYNODIC) % SYNODIC;
+  if (dir < 0) d -= SYNODIC;
+  if (Math.abs(d) < 0.02) d += dir * SYNODIC;
+  return new Date(date.getTime() + d * DAY);
+}
+function nextBirthday() {
+  const [, m, d] = CONFIG.born.date.split("-");
+  const now = new Date();
+  let y = Number(localParts(now).date.slice(0, 4));
+  let when = sarajevo({ date: `${y}-${m}-${d}`, time: CONFIG.born.time });
+  if (when < now) when = sarajevo({ date: `${y + 1}-${m}-${d}`, time: CONFIG.born.time });
+  return when;
+}
+
+const JUMPS = {
+  born: () => sarajevo(CONFIG.born), nextBday: nextBirthday,
+  met: () => sarajevo(CONFIG.met), dinner: () => sarajevo(CONFIG.dinner),
+  prevNew: () => phaseFrom(exploreAt, 0, -1), prevFull: () => phaseFrom(exploreAt, 0.5, -1),
+  nextNew: () => phaseFrom(exploreAt, 0, 1), nextFull: () => phaseFrom(exploreAt, 0.5, 1),
+};
+jump.innerHTML = "";
+jump.append(new Option(T.jump, ""));
+const group = (label, items) => {
+  const g = document.createElement("optgroup");
+  g.label = label;
+  items.filter(([key]) => key).forEach(([key, text]) => g.append(new Option(text, key)));
+  jump.append(g);
+};
+group(T.ourNights, [
+  [CONFIG.born && "born", T.jumpBorn(CONFIG.born?.date.slice(0, 4))],
+  [CONFIG.born && "nextBday", T.jumpNextBday],
+  [CONFIG.met && "met", T.jumpMet],
+  [CONFIG.dinner && "dinner", T.jumpDinner],
+]);
+group(T.moonGroup, [
+  ["prevNew", T.prevNew], ["prevFull", T.prevFull], ["nextNew", T.nextNew], ["nextFull", T.nextFull],
+]);
+jump.addEventListener("change", () => {
+  if (JUMPS[jump.value]) explore(JUMPS[jump.value]());
+  jump.value = "";
+});
+
 scrub.addEventListener("input", () => {
-  scrubText();
-  if (scrubQueued) return;
-  scrubQueued = true;
-  requestAnimationFrame(() => { scrubQueued = false; renderScrub(); });
+  const base = exploreAt.getTime() - moonInfo(exploreAt).age * DAY; // start of this lunation
+  explore(new Date(base + (scrub.value / 1000) * SYNODIC * DAY), true);
 });
-document.getElementById("reset").addEventListener("click", () => {
-  scrub.value = Math.round(heroFrac * 1000); renderScrub();
-});
+document.querySelectorAll("[data-step]").forEach((b) =>
+  b.addEventListener("click", () => explore(new Date(exploreAt.getTime() + Number(b.dataset.step) * DAY))));
+document.getElementById("reset").addEventListener("click", () => explore(new Date()));
+const fromPickers = () => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(pickDate.value)) {
+    explore(sarajevo({ date: pickDate.value, time: pickTime.value || "20:00" }));
+  }
+};
+pickDate.addEventListener("change", fromPickers);
+pickTime.addEventListener("change", fromPickers);
 
 function renderAll() {
   renderHero();
@@ -653,8 +773,7 @@ function renderAll() {
   renderScrub();
 }
 heroText();
-scrub.value = Math.round(heroFrac * 1000);
-scrubText();
+explore(new Date());
 // NASA maps first; if they can't be read, fall back to the hand-built surface
 const surfaceReady = Promise.all([loadPixels(TEXTURES.color), loadPixels(TEXTURES.height)])
   .then(([color, height]) => buildMappedSurface(768, color, height))
