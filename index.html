@@ -46,6 +46,7 @@
   .moon-wrap, .small-moon { position: relative; aspect-ratio: 1; }
   .moon-wrap canvas, .small-moon canvas {
     position: absolute; left: -40%; top: -40%; width: 180%; height: 180%;
+    pointer-events: none; /* the glow overhangs the slider; let touches through */
     opacity: 0; transition: opacity 2.4s ease;
   }
   canvas.ready { opacity: 1; }
