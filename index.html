@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#04050b">
+<title>The Moon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky: #04050b;
+    --ink: #ede6d2;
+    --muted: #979cb2;
+    --faint: #5a6080;
+    --line: rgba(237, 230, 210, 0.14);
+    --gold: #d9c79c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { background: var(--sky); }
+  body {
+    min-height: 100vh;
+    color: var(--ink);
+    font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+    font-weight: 300;
+    background:
+      radial-gradient(90% 55% at 50% 18%, rgba(70, 82, 140, 0.28) 0%, transparent 70%),
+      radial-gradient(140% 90% at 50% 0%, #161c38 0%, #0a0e1f 45%, var(--sky) 100%) fixed;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  #stars { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+  .vignette {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(120% 90% at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+  }
+  body::after { /* film grain */
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 3; opacity: 0.07;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.2 -0.35'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  main, footer { position: relative; z-index: 1; }
+
+  /* moons: the canvas is larger than its box so the glow has room */
+  .moon-wrap, .small-moon { position: relative; aspect-ratio: 1; }
+  .moon-wrap canvas, .small-moon canvas {
+    position: absolute; left: -40%; top: -40%; width: 180%; height: 180%;
+    opacity: 0; transition: opacity 2.4s ease;
+  }
+  canvas.ready { opacity: 1; }
+
+  /* hero */
+  .hero {
+    min-height: 100svh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 40px; padding: 64px 16px; text-align: center;
+  }
+  .moon-wrap { width: min(68vw, 380px); animation: float 11s ease-in-out infinite; }
+  @keyframes float {
+    0%, 100% { transform: translateY(-8px) rotate(-0.6deg); }
+    50% { transform: translateY(8px) rotate(0.6deg); }
+  }
+  .greet { font-style: italic; color: var(--muted); font-size: 1.15rem; letter-spacing: 0.05em; }
+  .hero-text { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .kicker { font-style: italic; font-size: clamp(1.35rem, 5vw, 1.7rem); color: #d8d3c4; }
+  .phase { font-size: clamp(2.2rem, 9.5vw, 3.2rem); font-weight: 300; letter-spacing: 0.03em; line-height: 1.1; }
+  .meta { color: var(--muted); font-size: 0.92rem; letter-spacing: 0.2em; text-transform: uppercase; }
+  .ornament { display: flex; align-items: center; gap: 12px; color: var(--gold); opacity: 0.7; font-size: 0.7rem; }
+  .ornament::before, .ornament::after { content: ""; width: 38px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
+  .ornament::after { transform: scaleX(-1); }
+  .scroll-hint { width: 1px; height: 44px; background: linear-gradient(var(--faint), transparent); }
+
+  /* sections */
+  section.block { max-width: 760px; margin: 0 auto; padding: 80px 16px; }
+  .nights { display: grid; grid-template-columns: 1fr; gap: 88px; }
+  @media (min-width: 640px) { .nights { grid-template-columns: 1fr 1fr; gap: 40px; } }
+  .night { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px; }
+  .night .small-moon { width: 150px; margin-bottom: 22px; }
+  .night h2 { font-style: italic; font-weight: 300; font-size: 1.5rem; line-height: 1.25; }
+  .night .date { color: var(--gold); opacity: 0.85; font-size: 1.05rem; letter-spacing: 0.08em; }
+  .night .ph { font-size: 1.12rem; color: #cfcab9; }
+  .divider { width: 56px; height: 1px; background: linear-gradient(90deg, transparent, var(--line), transparent); margin: 0 auto; }
+
+  /* scrub */
+  .scrub { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 18px; }
+  .scrub h2 { font-style: italic; font-weight: 300; font-size: 1.4rem; }
+  .scrub .small-moon { width: 210px; margin: 26px 0 30px; }
+  .scrub-out { min-height: 3.2em; display: flex; flex-direction: column; gap: 4px; }
+  .scrub-out .ph { font-size: 1.35rem; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: min(100%, 420px); height: 34px; background: transparent; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: linear-gradient(90deg, transparent, var(--line) 15%, var(--line) 85%, transparent); }
+  input[type=range]::-moz-range-track { height: 1px; background: var(--line); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 38%, #fffaf0, #e2d6b4); box-shadow: 0 0 16px rgba(243, 232, 200, 0.6);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 20px; height: 20px; border: 0; border-radius: 50%;
+    background: radial-gradient(circle at 40% 38%, #fffaf0, #e2d6b4); box-shadow: 0 0 16px rgba(243, 232, 200, 0.6);
+  }
+  input[type=range]:focus-visible { outline: 1px dashed var(--faint); outline-offset: 6px; }
+  .reset {
+    font: inherit; font-style: italic; font-size: 1rem; color: var(--muted);
+    background: none; border: 0; border-bottom: 1px solid var(--line); padding: 4px 2px; cursor: pointer;
+  }
+  .reset:hover { color: var(--ink); }
+
+  footer { padding: 40px 16px 72px; text-align: center; color: var(--faint); font-style: italic; font-size: 1.05rem; }
+  footer .wink { display: block; margin-top: 10px; font-size: 0.85rem; opacity: 0.7; }
+  footer .credit { display: block; margin-top: 28px; font-size: 0.72rem; font-style: normal; letter-spacing: 0.08em; opacity: 0.45; }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity 1.6s ease, transform 1.6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .moon-wrap { animation: none; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .moon-wrap canvas, .small-moon canvas { transition: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<main>
+  <section class="hero">
+    <p class="greet" id="greet" hidden></p>
+    <div class="moon-wrap"><canvas id="hero-moon" role="img"></canvas></div>
+    <div class="hero-text">
+      <p class="kicker" data-t="tonight"></p>
+      <p class="phase" id="hero-phase"></p>
+      <p class="ornament" aria-hidden="true">✦</p>
+      <p class="meta" id="hero-meta"></p>
+    </div>
+    <div class="scroll-hint" aria-hidden="true"></div>
+  </section>
+
+  <section class="block nights">
+    <article class="night reveal" id="night-met">
+      <div class="small-moon"><canvas role="img"></canvas></div>
+      <h2 data-t="met"></h2>
+      <p class="date"></p>
+      <p class="ph"></p>
+    </article>
+    <article class="night reveal" id="night-dinner">
+      <div class="small-moon"><canvas role="img"></canvas></div>
+      <h2 data-t="dinner"></h2>
+      <p class="date"></p>
+      <p class="ph"></p>
+    </article>
+  </section>
+
+  <div class="divider"></div>
+
+  <section class="block scrub reveal">
+    <h2 data-t="scrub"></h2>
+    <div class="small-moon"><canvas id="scrub-moon" role="img"></canvas></div>
+    <input type="range" id="scrub" min="0" max="1000" step="1" aria-labelledby="scrub-label">
+    <div class="scrub-out">
+      <p class="ph" id="scrub-label"></p>
+      <p class="meta" id="scrub-meta"></p>
+    </div>
+    <button class="reset" id="reset" data-t="today"></button>
+  </section>
+</main>
+
+<footer class="reveal">
+  <span data-t="footer"></span>
+  <span class="wink" id="wink" hidden></span>
+  <span class="credit">Moon map: NASA's Scientific Visualization Studio / LRO</span>
+</footer>
+
+<script>
+/* ===================== EDIT THESE ===================== */
+const CONFIG = {
+  lang: "en",          // "en" or "bs"
+  name: "",            // optional, shown softly above the moon. "" to hide
+  // Local Bosnia time (Europe/Sarajevo). Use the real hour if you remember it.
+  met:    { date: "2026-10-18", time: "20:00" },   // the night we met
+  dinner: { date: "2026-10-25", time: "20:00" },   // the dinner
+  wink: "",            // optional tiny footer line. "" to hide
+};
+/* ====================================================== */
+
+const STRINGS = {
+  en: {
+    tonight: "This is tonight's moon.",
+    met: "The moon on the night we met.",
+    dinner: "The moon at that dinner.",
+    scrub: "Drag the moon through its month.",
+    today: "back to tonight",
+    footer: "I made this because you like the moon.",
+    lit: (p) => `${p}% lit`,
+    day: (d) => `day ${d} of 29.5`,
+    locale: "en-GB",
+    phases: ["New Moon", "Waxing Crescent", "First Quarter", "Waxing Gibbous",
+             "Full Moon", "Waning Gibbous", "Last Quarter", "Waning Crescent"],
+  },
+  bs: {
+    tonight: "Ovo je večerašnji mjesec.",
+    met: "Mjesec one noći kad smo se upoznali.",
+    dinner: "Mjesec na onoj večeri.",
+    scrub: "Provuci mjesec kroz sve njegove mijene.",
+    today: "nazad na večeras",
+    footer: "Napravio sam ovo jer voliš mjesec.",
+    lit: (p) => `${p}% osvijetljen`,
+    day: (d) => `${d}. dan od 29,5`,
+    locale: "bs",
+    phases: ["Mlađak", "Rastući srp", "Prva četvrt", "Rastući mjesec",
+             "Pun mjesec", "Opadajući mjesec", "Zadnja četvrt", "Opadajući srp"],
+  },
+};
+const T = STRINGS[CONFIG.lang] || STRINGS.en;
+
+/* ---------- phase math ---------- */
+const SYNODIC = 29.530588853;
+const REF_NEW_MOON = Date.UTC(2000, 0, 6, 18, 14);
+const TAU = Math.PI * 2;
+const DEG = Math.PI / 180;
+
+function moonAge(date) {
+  const days = (date.getTime() - REF_NEW_MOON) / 86400000;
+  return ((days % SYNODIC) + SYNODIC) % SYNODIC;
+}
+
+const PHASE_LIMITS = [0.03, 0.22, 0.28, 0.47, 0.53, 0.72, 0.78, 0.97, 1.01];
+function phaseInfo(frac) {
+  const i = PHASE_LIMITS.findIndex((limit) => frac < limit) % 8;
+  return {
+    frac,
+    age: frac * SYNODIC,
+    illumination: (1 - Math.cos(TAU * frac)) / 2,
+    name: T.phases[i],
+  };
+}
+const moonInfo = (date) => phaseInfo(moonAge(date) / SYNODIC);
+
+/* Local Sarajevo wall-clock time -> real instant (EU DST rules). */
+function lastSundayUTC(y, month) {
+  const d = new Date(Date.UTC(y, month + 1, 0));
+  return Date.UTC(y, month, d.getUTCDate() - d.getUTCDay(), 1);
+}
+function sarajevo({ date, time = "20:00" }) {
+  const [y, mo, d] = date.split("-").map(Number);
+  const [h, mi] = time.split(":").map(Number);
+  const wall = Date.UTC(y, mo - 1, d, h, mi);
+  const approx = wall - 3600000;
+  const summer = approx >= lastSundayUTC(y, 2) && approx < lastSundayUTC(y, 9);
+  return new Date(wall - (summer ? 2 : 1) * 3600000);
+}
+
+/* ---------- noise ---------- */
+function mulberry(seed) {
+  return () => {
+    seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hash2(x, y, s) {
+  let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ Math.imul(s, 1442695041);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+function vnoise(x, y, s) {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash2(xi, yi, s), b = hash2(xi + 1, yi, s), c = hash2(xi, yi + 1, s), d = hash2(xi + 1, yi + 1, s);
+  return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+}
+function fbm(x, y, octaves, s) {
+  let sum = 0, amp = 0.5, f = 1, norm = 0;
+  for (let i = 0; i < octaves; i++) { sum += amp * vnoise(x * f, y * f, s + i * 17); norm += amp; amp *= 0.5; f *= 2.03; }
+  return sum / norm;
+}
+const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+/* ---------- the lunar surface ----------
+   Built once as albedo + bump normals over the visible disc.
+   Seas and named craters sit roughly where they are on the real near side. */
+const MARIA = [ // [longitude, latitude, radius] in degrees
+  [-16, 33, 10], [17, 28, 8.5], [31, 8, 9.5], [59, 17, 5.5], [51, -8, 7.5], [35, -15, 4.5],
+  [-17, -21, 7], [-39, -24, 4.5], [-60, 8, 13], [-52, 28, 11], [-45, -5, 9], [-31, 7, 5.5],
+  [-23, -10, 4.5], [4, 13, 3.5], [-25, 56, 5], [0, 57, 5], [25, 57, 4], [8, 2, 3],
+  [-55, -15, 8], [-66, 24, 9], [-40, 15, 8], [-30, 40, 6],   // Oceanus Procellarum, filled out
+];
+const FEATURES = [ // [lon, lat, radius°, depth, albedo shift, ray length]
+  [-11.4, -43.3, 2.6, 1.0, 0.35, 14],   // Tycho
+  [-20.1, 9.6, 2.8, 1.0, 0.22, 7],      // Copernicus
+  [-38.0, 8.1, 0.9, 1.0, 0.25, 5],      // Kepler
+  [-47.5, 23.7, 1.1, 1.0, 0.45, 0],     // Aristarchus
+  [-9.3, 51.6, 3.3, 0.35, -0.14, 0],    // Plato
+  [61.0, -8.9, 4.2, 0.8, 0.05, 0],      // Langrenus
+  [26.4, -11.4, 3.3, 0.9, 0.06, 0],     // Theophilus
+  [-14.1, -58.4, 7.5, 0.5, 0.0, 0],     // Clavius
+];
+function sel(lon, lat) {
+  lon *= DEG; lat *= DEG;
+  return [Math.cos(lat) * Math.sin(lon), -Math.sin(lat), Math.cos(lat) * Math.cos(lon)];
+}
+
+let surface = null;
+const getSurface = () => surface;
+
+function buildSurface(D) {
+  const R = D / 2, n = D * D;
+  const alb = new Float32Array(n), hgt = new Float32Array(n), inside = new Uint8Array(n);
+  // seas as a metaball field, so neighbours melt into one shape, then warped by noise
+  const maria = MARIA.map(([lo, la, r]) => ({ v: sel(lo, la), r: r * 1.15 * DEG, cosMax: Math.cos(r * 1.15 * DEG * 2.4) }));
+  const mareAt = (u, v, z, warp) => {
+    let field = 0;
+    for (const M of maria) {
+      const c = u * M.v[0] + v * M.v[1] + z * M.v[2];
+      if (c < M.cosMax) continue;
+      const d = Math.acos(Math.min(1, c)) / M.r;
+      field += Math.exp(-d * d * 1.5);
+    }
+    return smooth(0.06, 0.55, field + warp);
+  };
+  const warpAt = (u, v) => (fbm(u * 2.5 + 3, v * 2.5, 4, 11) - 0.5) * 0.6 + (fbm(u * 8, v * 8, 4, 12) - 0.5) * 0.3;
+
+  // base albedo and fine relief
+  for (let y = 0; y < D; y++) for (let x = 0; x < D; x++) {
+    const u = (x + 0.5 - R) / R, v = (y + 0.5 - R) / R, rr = u * u + v * v;
+    if (rr >= 1) continue;
+    const z = Math.sqrt(1 - rr), i = y * D + x;
+    inside[i] = 1;
+    const m = mareAt(u, v, z, warpAt(u, v)) * (0.8 + 0.35 * fbm(u * 6, v * 6 + 4, 3, 14));
+    const mott = fbm(u * 7, v * 7, 4, 1), fine = fbm(u * 38, v * 38, 3, 2);
+    alb[i] = (1.0 - 0.48 * m) * (0.84 + 0.26 * mott) + (fine - 0.5) * 0.07;
+    hgt[i] = (fbm(u * 22, v * 22, 5, 5) - 0.5) * R * 0.012 * (1 - 0.6 * m);
+  }
+
+  // craters: a few named ones plus a power-law field, splatted into their own bounding boxes
+  const rand = mulberry(1969);
+  const craters = FEATURES.map(([lo, la, r, dep, br, ray]) => ({ v: sel(lo, la), r: r * DEG, dep, br, ray }));
+  for (let k = 0; k < 520; k++) {
+    const zc = rand(), phi = rand() * TAU, s = Math.sqrt(1 - zc * zc);
+    const v = [s * Math.cos(phi), s * Math.sin(phi), zc];
+    if (mareAt(v[0], v[1], v[2], 0) > 0.5 && rand() < 0.8) continue; // seas are smoother
+    const fresh = rand() < 0.1;
+    craters.push({
+      v, r: (0.3 + 5 * Math.pow(rand(), 4)) * DEG, dep: 0.35 + rand() * 0.4,
+      br: fresh ? 0.05 + rand() * 0.09 : (rand() - 0.5) * 0.05, ray: 0,
+    });
+  }
+  for (const C of craters) {
+    if (C.r * R < 0.6) continue;
+    const [cx, cy, cz] = C.v, ext = 1.7, cosExt = Math.cos(C.r * ext);
+    const reach = Math.sin(Math.min(C.r * ext, Math.PI / 2)) * R + 2;
+    const px = R + cx * R - 0.5, py = R + cy * R - 0.5, hs = C.r * R * 0.28 * C.dep;
+    const x0 = Math.max(0, Math.floor(px - reach)), x1 = Math.min(D - 1, Math.ceil(px + reach));
+    const y0 = Math.max(0, Math.floor(py - reach)), y1 = Math.min(D - 1, Math.ceil(py + reach));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const i = y * D + x;
+      if (!inside[i]) continue;
+      const u = (x + 0.5 - R) / R, v = (y + 0.5 - R) / R, z = Math.sqrt(1 - u * u - v * v);
+      const c = u * cx + v * cy + z * cz;
+      if (c < cosExt) continue;
+      const d = Math.acos(Math.min(1, c)) / C.r;
+      const bowl = d < 1 ? d * d - 1 : 0;
+      const rim = Math.exp(-(((d - 1) / 0.2) ** 2)) * 0.4;
+      const ejecta = d > 1 ? Math.exp(-(d - 1) * 4) * 0.1 : 0;
+      hgt[i] += hs * (bowl + rim + ejecta);
+      if (C.br < 0) { if (d < 0.92) alb[i] += C.br; }
+      else if (C.br) alb[i] += C.br * (d < 1.15 ? 1 : Math.exp(-(d - 1.15) * 5));
+    }
+  }
+
+  // bright ray systems
+  const rayed = craters.filter((C) => C.ray).map((C) => {
+    const [cx, cy, cz] = C.v;
+    let nx = -cy * -cx, ny = -1 - cy * -cy, nz = -cz * -cy; // north minus its radial part
+    const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl;
+    const ex = ny * cz - nz * cy, ey = nz * cx - nx * cz, ez = nx * cy - ny * cx;
+    return { C, n: [nx, ny, nz], e: [ex, ey, ez], seed: Math.round(C.ray * 31) };
+  });
+  for (let y = 0; y < D; y++) for (let x = 0; x < D; x++) {
+    const i = y * D + x;
+    if (!inside[i]) continue;
+    const u = (x + 0.5 - R) / R, v = (y + 0.5 - R) / R, z = Math.sqrt(1 - u * u - v * v);
+    for (const { C, n: N, e: E, seed } of rayed) {
+      const c = u * C.v[0] + v * C.v[1] + z * C.v[2];
+      const d = Math.acos(Math.max(-1, Math.min(1, c))) / C.r;
+      if (d < 1.2 || d > C.ray * 2.2) continue;
+      const th = Math.atan2(u * N[0] + v * N[1] + z * N[2], u * E[0] + v * E[1] + z * E[2]);
+      const ray = Math.pow(vnoise(Math.cos(th) * 5, Math.sin(th) * 5, seed), 3) * 1.4
+                + Math.pow(vnoise(Math.cos(th) * 11, Math.sin(th) * 11, seed + 3), 4) * 0.6;
+      const streak = 0.4 + 0.8 * fbm(d * 0.5, th * 2, 3, seed + 9);
+      const halo = 0.5 * Math.exp(-(d - 1.2) / 1.6);  // soft bright skirt around the crater
+      alb[i] += 0.2 * (ray * streak + halo) * Math.exp(-(d - 1.2) / C.ray) * smooth(1.2, 2.4, d);
+    }
+  }
+
+  return withNormals(D, alb, hgt, inside);
+}
+
+/* Albedo + relief from NASA's LRO maps (CGI Moon Kit, equirectangular, 0° longitude centred). */
+const TEXTURES = { color: "textures/moon-color.jpg", height: "textures/moon-height.jpg" };
+
+function loadPixels(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        const x = c.getContext("2d", { willReadFrequently: true });
+        x.drawImage(img, 0, 0);
+        resolve({ w: c.width, h: c.height, data: x.getImageData(0, 0, c.width, c.height).data });
+      } catch (e) { reject(e); } // e.g. a tainted canvas when opened from file://
+    };
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function sampler({ w, h, data }) { // bilinear, wraps in longitude
+  const p = (x, y, ch) => data[(y * w + x) * 4 + ch];
+  return (fx, fy, ch) => {
+    const xf = Math.floor(fx), tx = fx - xf, yc = Math.max(0, Math.min(h - 1, fy));
+    const y0 = Math.floor(yc), y1 = Math.min(h - 1, y0 + 1), ty = yc - y0;
+    const xa = ((xf % w) + w) % w, xb = (xa + 1) % w;
+    return (p(xa, y0, ch) * (1 - tx) + p(xb, y0, ch) * tx) * (1 - ty)
+         + (p(xa, y1, ch) * (1 - tx) + p(xb, y1, ch) * tx) * ty;
+  };
+}
+
+function buildMappedSurface(D, color, height) {
+  const R = D / 2, n = D * D;
+  const alb = new Float32Array(n), hgt = new Float32Array(n), inside = new Uint8Array(n);
+  const cr = new Float32Array(n), cg = new Float32Array(n), cb = new Float32Array(n);
+  const col = sampler(color), elev = sampler(height);
+  for (let y = 0; y < D; y++) for (let x = 0; x < D; x++) {
+    const u = (x + 0.5 - R) / R, v = (y + 0.5 - R) / R, rr = u * u + v * v;
+    if (rr >= 1) continue;
+    const z = Math.sqrt(1 - rr), i = y * D + x;
+    inside[i] = 1;
+    const lon = Math.atan2(u, z), lat = Math.asin(-v);
+    const mx = lon / TAU + 0.5, my = 0.5 - lat / Math.PI;
+    const fx = mx * color.w - 0.5, fy = my * color.h - 0.5;
+    const r = col(fx, fy, 0) / 255, g = col(fx, fy, 1) / 255, b = col(fx, fy, 2) / 255;
+    const lum = Math.max(0.02, 0.3 * r + 0.59 * g + 0.11 * b);
+    alb[i] = Math.pow(lum / 0.8, 1.7);          // the map is pale; stretch seas vs highlands
+    cr[i] = 1 + (r / lum - 1) * 0.6;              // keep a little of the real colour
+    cg[i] = 1 + (g / lum - 1) * 0.6;
+    cb[i] = 1 + (b / lum - 1) * 0.6;
+    hgt[i] = (elev(mx * height.w - 0.5, my * height.h - 0.5, 0) / 255 - 0.5) * R * 0.06
+           + (fbm(u * 40, v * 40, 3, 5) - 0.5) * R * 0.004;
+  }
+  return Object.assign(withNormals(D, alb, hgt, inside), { cr, cg, cb });
+}
+
+function withNormals(D, alb, hgt, inside) {
+  const R = D / 2, n = D * D;
+  const nx = new Float32Array(n), ny = new Float32Array(n), nz = new Float32Array(n);
+  const H = (x, y, i) => (x >= 0 && y >= 0 && x < D && y < D && inside[y * D + x] ? hgt[y * D + x] : hgt[i]);
+  for (let y = 0; y < D; y++) for (let x = 0; x < D; x++) {
+    const i = y * D + x;
+    if (!inside[i]) continue;
+    const u = (x + 0.5 - R) / R, v = (y + 0.5 - R) / R, z = Math.sqrt(1 - u * u - v * v);
+    const gx = (H(x + 1, y, i) - H(x - 1, y, i)) / 2, gy = (H(x, y + 1, i) - H(x, y - 1, i)) / 2;
+    let ax = u - gx * z, ay = v - gy * z, az = z;
+    const l = Math.hypot(ax, ay, az);
+    nx[i] = ax / l; ny[i] = ay / l; nz[i] = az / l;
+    alb[i] = Math.min(1.35, Math.max(0.2, alb[i]));
+  }
+  return { D, alb, nx, ny, nz, inside };
+}
+
+/* ---------- lighting ----------
+   Lunar-Lambert: a blend of Lambert and Lommel-Seeliger, weighted by phase angle.
+   It keeps the full moon flat-looking like the real one instead of a shaded ball. */
+function shade(D, frac) {
+  const S = getSurface(), Dc = S.D, R = D / 2;
+  const L0 = Math.sin(TAU * frac), L2 = -Math.cos(TAU * frac); // sun direction (x, 0, z); viewer is +z
+  const alpha = Math.acos(Math.max(-1, Math.min(1, L2)));      // phase angle
+  const w = Math.exp(-alpha / DEG / 60);
+  const refl = (mu0, mu) => (1 - w) * mu0 + (2 * w * mu0) / Math.max(mu0 + mu, 0.08);
+
+  let ref = 1e-6; // brightest point of a smooth sphere, for exposure
+  for (let j = 0; j < 40; j++) for (let k = 0; k < 40; k++) {
+    const u = (k + 0.5) / 20 - 1, v = (j + 0.5) / 20 - 1, rr = u * u + v * v;
+    if (rr >= 1) continue;
+    const z = Math.sqrt(1 - rr), mu0 = u * L0 + z * L2;
+    if (mu0 > 0) ref = Math.max(ref, refl(mu0, z));
+  }
+  const expo = 1.8 / ref;
+  const earthshine = 0.025 + 0.06 * Math.pow((1 + Math.cos(TAU * frac)) / 2, 3);
+
+  const moon = new ImageData(D, D), glow = new ImageData(D, D);
+  const md = moon.data, gd = glow.data;
+  for (let y = 0; y < D; y++) for (let x = 0; x < D; x++) {
+    const u = (x + 0.5 - R) / R, v = (y + 0.5 - R) / R, rr = u * u + v * v;
+    const o = (y * D + x) * 4;
+    gd[o] = 255; gd[o + 1] = 238; gd[o + 2] = 210;
+    const edge = (1 - Math.sqrt(rr)) * R + 0.5;
+    if (edge <= 0) continue;
+    const cov = Math.min(1, edge);
+    const z = Math.sqrt(Math.max(0, 1 - rr));
+    const ci = Math.min(Dc - 1, Math.floor(((u + 1) / 2) * Dc)) + Math.min(Dc - 1, Math.floor(((v + 1) / 2) * Dc)) * Dc;
+    const has = S.inside[ci];
+    const A = has ? S.alb[ci] : 0.8, nx = has ? S.nx[ci] : u, nz = has ? S.nz[ci] : z;
+    const kr = has && S.cr ? S.cr[ci] : 1, kg = has && S.cg ? S.cg[ci] : 1, kb = has && S.cb ? S.cb[ci] : 1;
+
+    const mu0s = u * L0 + z * L2, mu0 = nx * L0 + nz * L2;
+    let lit = mu0 > 0 ? Math.pow(1 - Math.exp(-A * refl(mu0, nz) * expo), 0.88) : 0;
+    lit *= smooth(-0.07, 0.03, mu0s);       // peaks just past the terminator still catch light
+    const warm = 1 - smooth(0, 0.35, mu0s); // light skims the surface near the terminator
+    const es = earthshine * A * (1 - lit);
+
+    md[o]     = 255 * Math.min(1, lit * kr + es * 0.42);
+    md[o + 1] = 255 * Math.min(1, lit * kg * (0.965 - 0.05 * warm) + es * 0.5);
+    md[o + 2] = 255 * Math.min(1, lit * kb * (0.9 - 0.12 * warm) + es * 0.7);
+    md[o + 3] = 255 * cov;
+    gd[o + 3] = 255 * cov * lit;
+  }
+  return { moon, glow };
+}
+
+/* box blur on the alpha channel; colour stays the glow tint */
+function blurAlpha(img, r, passes) {
+  const { width: w, height: h, data } = img, a = new Float32Array(w * h), t = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) a[i] = data[i * 4 + 3];
+  const k = 1 / (2 * r + 1);
+  for (let p = 0; p < passes; p++) {
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let s = 0;
+      for (let d = -r; d <= r; d++) s += a[y * w + Math.min(w - 1, Math.max(0, x + d))];
+      t[y * w + x] = s * k;
+    }
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let s = 0;
+      for (let d = -r; d <= r; d++) s += t[Math.min(h - 1, Math.max(0, y + d)) * w + x];
+      a[y * w + x] = s * k;
+    }
+  }
+  for (let i = 0; i < w * h; i++) {
+    data[i * 4] = 255; data[i * 4 + 1] = 238; data[i * 4 + 2] = 210; data[i * 4 + 3] = a[i];
+  }
+}
+
+const scratch = {};
+function layer(name, w, h) {
+  const c = scratch[name] || (scratch[name] = document.createElement("canvas"));
+  if (c.width !== w || c.height !== h) { c.width = w; c.height = h; }
+  return c;
+}
+
+const GLOW_PAD = 1.8; // canvas is 180% of the moon box (see CSS)
+function drawMoon(cv, frac) {
+  if (!surface) return; // still loading; renderAll runs once it's ready
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const D = Math.max(8, Math.round(cv.parentElement.clientWidth * dpr));
+  const W = Math.round(D * GLOW_PAD), off = (W - D) / 2;
+  if (cv.width !== W) { cv.width = cv.height = W; }
+  const { moon, glow } = shade(D, frac);
+  const mc = layer("moon", D, D); mc.getContext("2d").putImageData(moon, 0, 0);
+  const gc = layer("glow", D, D); gc.getContext("2d").putImageData(glow, 0, 0);
+
+  const ctx = cv.getContext("2d");
+  ctx.clearRect(0, 0, W, W);
+  for (const [div, r, a] of [[5, 2, 0.55], [16, 3, 0.8]]) { // tight bloom, then a wide halo
+    const s = Math.max(4, Math.round(W / div)), k = s / W;
+    const bc = layer("blur" + div, s, s), b = bc.getContext("2d", { willReadFrequently: true });
+    b.clearRect(0, 0, s, s);
+    b.drawImage(gc, off * k, off * k, D * k, D * k);
+    const id = b.getImageData(0, 0, s, s);
+    blurAlpha(id, r, 3);
+    b.putImageData(id, 0, 0);
+    ctx.globalAlpha = a;
+    ctx.drawImage(bc, 0, 0, W, W);
+  }
+  ctx.globalAlpha = 1;
+  ctx.drawImage(mc, off, off);
+  cv.classList.add("ready");
+}
+
+/* ---------- page ---------- */
+document.documentElement.lang = CONFIG.lang;
+document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = T[el.dataset.t]; });
+if (CONFIG.name) { const g = document.getElementById("greet"); g.textContent = CONFIG.name; g.hidden = false; }
+if (CONFIG.wink) { const w = document.getElementById("wink"); w.textContent = CONFIG.wink; w.hidden = false; }
+
+const fmtDate = new Intl.DateTimeFormat(T.locale, {
+  day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Sarajevo",
+});
+const describe = (info) => `${info.name} · ${T.lit(Math.round(info.illumination * 100))}`;
+
+const nights = [["night-met", CONFIG.met], ["night-dinner", CONFIG.dinner]].map(([id, cfg]) => {
+  const el = document.getElementById(id);
+  if (!cfg || !cfg.date) { el.hidden = true; return null; }
+  const when = sarajevo(cfg);
+  const info = moonInfo(when);
+  el.querySelector(".date").textContent = fmtDate.format(when);
+  el.querySelector(".ph").textContent = describe(info);
+  el.querySelector("canvas").setAttribute("aria-label", describe(info));
+  return { cv: el.querySelector("canvas"), frac: info.frac };
+}).filter(Boolean);
+
+const heroCv = document.getElementById("hero-moon");
+let heroFrac = moonInfo(new Date()).frac;
+function heroText() {
+  const info = moonInfo(new Date());
+  heroFrac = info.frac;
+  document.getElementById("hero-phase").textContent = info.name;
+  document.getElementById("hero-meta").textContent =
+    `${T.lit(Math.round(info.illumination * 100))} · ${T.day(Math.floor(info.age) + 1)}`;
+  heroCv.setAttribute("aria-label", describe(info));
+}
+const renderHero = () => { heroText(); drawMoon(heroCv, heroFrac); };
+
+const scrub = document.getElementById("scrub");
+const scrubCv = document.getElementById("scrub-moon");
+function scrubText() {
+  const info = phaseInfo(scrub.value / 1000);
+  document.getElementById("scrub-label").textContent = info.name;
+  document.getElementById("scrub-meta").textContent = T.lit(Math.round(info.illumination * 100));
+  scrubCv.setAttribute("aria-label", describe(info));
+  return info;
+}
+const renderScrub = () => drawMoon(scrubCv, scrubText().frac);
+let scrubQueued = false;
+scrub.addEventListener("input", () => {
+  scrubText();
+  if (scrubQueued) return;
+  scrubQueued = true;
+  requestAnimationFrame(() => { scrubQueued = false; renderScrub(); });
+});
+document.getElementById("reset").addEventListener("click", () => {
+  scrub.value = Math.round(heroFrac * 1000); renderScrub();
+});
+
+function renderAll() {
+  renderHero();
+  nights.forEach((n) => drawMoon(n.cv, n.frac));
+  renderScrub();
+}
+heroText();
+scrub.value = Math.round(heroFrac * 1000);
+scrubText();
+// NASA maps first; if they can't be read, fall back to the hand-built surface
+const surfaceReady = Promise.all([loadPixels(TEXTURES.color), loadPixels(TEXTURES.height)])
+  .then(([color, height]) => buildMappedSurface(768, color, height))
+  .catch(() => buildSurface(768))
+  .then((s) => { surface = s; });
+surfaceReady.then(() => requestAnimationFrame(() => setTimeout(renderAll, 30)));
+
+let resizeTimer, lastW = window.innerWidth;
+window.addEventListener("resize", () => {
+  if (window.innerWidth === lastW) return; // ignore mobile URL-bar height changes
+  lastW = window.innerWidth;
+  clearTimeout(resizeTimer); resizeTimer = setTimeout(renderAll, 200);
+});
+document.addEventListener("visibilitychange", () => { if (!document.hidden) renderHero(); });
+setInterval(renderHero, 10 * 60 * 1000);
+
+/* reveal on scroll */
+const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+if ("IntersectionObserver" in window && !reduced) {
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } });
+  }, { threshold: 0.2 });
+  document.querySelectorAll(".reveal").forEach((el) => io.observe(el));
+} else {
+  document.querySelectorAll(".reveal").forEach((el) => el.classList.add("in"));
+}
+
+/* ---------- sky: milky way, coloured stars, the odd shooting star ---------- */
+(function sky() {
+  const cv = document.getElementById("stars");
+  const ctx = cv.getContext("2d");
+  const STAR_COLORS = ["#9bb0ff", "#b5c6ff", "#dfe6ff", "#fbf8ff", "#fff1dd", "#ffd9ad"];
+  let w = 0, h = 0, dpr = 1, bg = null, stars = [], meteor = null, nextMeteor = 0;
+
+  function setup() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = window.innerWidth; h = window.innerHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    bg = document.createElement("canvas");
+    bg.width = cv.width; bg.height = cv.height;
+    const b = bg.getContext("2d");
+
+    // milky way, painted at quarter resolution and scaled up soft
+    const q = 4, lw = Math.ceil(w / q), lh = Math.ceil(h / q), img = new ImageData(lw, lh);
+    const ax = -0.15 * w, ay = 0.95 * h, bx = 1.15 * w, by = 0.08 * h;
+    const len = Math.hypot(bx - ax, by - ay), dx = (bx - ax) / len, dy = (by - ay) / len;
+    const width = Math.min(w, h) * 0.24;
+    for (let j = 0; j < lh; j++) for (let i = 0; i < lw; i++) {
+      const px = (i + 0.5) * q, py = (j + 0.5) * q;
+      const t = ((px - ax) * dx + (py - ay) * dy) / len;
+      const d = ((px - ax) * -dy + (py - ay) * dx) / width;
+      const core = Math.exp(-d * d * 1.4);
+      if (core < 0.01) continue;
+      const cloud = fbm(px / 170, py / 170, 5, 21);
+      const lane = smooth(0.48, 0.68, fbm(px / 85 + 10, py / 85, 4, 33)) * Math.exp(-d * d * 5);
+      const dens = core * (0.25 + cloud) * (1 - 0.8 * lane) * (0.55 + 0.45 * Math.sin(t * 4 + 1) ** 2);
+      const warm = Math.min(1, core * core * cloud * 1.6);
+      const o = (j * lw + i) * 4;
+      img.data[o] = 140 + 90 * warm; img.data[o + 1] = 135 + 65 * warm; img.data[o + 2] = 200 - 25 * warm;
+      img.data[o + 3] = 255 * Math.min(1, dens * 0.17);
+    }
+    const tmp = document.createElement("canvas");
+    tmp.width = lw; tmp.height = lh;
+    tmp.getContext("2d").putImageData(img, 0, 0);
+    b.imageSmoothingQuality = "high";
+    b.drawImage(tmp, 0, 0, bg.width, bg.height);
+
+    // faint dust stars, denser along the band
+    const rand = mulberry(42);
+    b.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const dust = Math.min(2200, Math.round((w * h) / 260));
+    for (let k = 0; k < dust; k++) {
+      const x = rand() * w, y = rand() * h;
+      const d = ((x - ax) * -dy + (y - ay) * dx) / width;
+      if (rand() > 0.3 + 0.7 * Math.exp(-d * d * 1.4)) continue;
+      b.globalAlpha = 0.12 + rand() * 0.45;
+      b.fillStyle = STAR_COLORS[Math.floor(rand() * STAR_COLORS.length)];
+      b.beginPath(); b.arc(x, y, 0.25 + rand() * 0.45, 0, TAU); b.fill();
+    }
+    b.globalAlpha = 1;
+
+    // twinkling stars; the brightest get a soft four-point sparkle
+    const count = Math.min(170, Math.round((w * h) / 2400));
+    stars = Array.from({ length: count }, () => {
+      const r = 0.45 + Math.pow(rand(), 3) * 1.4;
+      return {
+        x: rand() * w, y: rand() * h, r,
+        color: STAR_COLORS[Math.floor(rand() * STAR_COLORS.length)],
+        base: 0.35 + rand() * 0.5, amp: 0.1 + rand() * 0.35,
+        speed: 0.25 + rand() * 1.1, phase: rand() * TAU,
+        sparkle: r > 1.6,
+      };
+    });
+  }
+
+  function drawMeteor(now) {
+    if (reduced) return;
+    if (!meteor && now > nextMeteor) {
+      const ang = (200 + Math.random() * 40) * DEG * (Math.random() < 0.5 ? 1 : -1);
+      meteor = {
+        x: w * (0.15 + Math.random() * 0.7), y: h * (0.05 + Math.random() * 0.35),
+        vx: Math.cos(ang) * -1, vy: Math.abs(Math.sin(ang)),
+        start: now, life: 900 + Math.random() * 500, len: 90 + Math.random() * 80,
+      };
+    }
+    if (!meteor) return;
+    const t = (now - meteor.start) / meteor.life;
+    if (t >= 1) { meteor = null; nextMeteor = now + 14000 + Math.random() * 26000; return; }
+    const travel = t * Math.min(w, h) * 0.5, fade = Math.sin(Math.PI * t);
+    const hx = meteor.x + meteor.vx * travel, hy = meteor.y + meteor.vy * travel;
+    const tx = hx - meteor.vx * meteor.len, ty = hy - meteor.vy * meteor.len;
+    const g = ctx.createLinearGradient(hx, hy, tx, ty);
+    g.addColorStop(0, `rgba(255, 250, 235, ${0.85 * fade})`);
+    g.addColorStop(1, "rgba(255, 250, 235, 0)");
+    ctx.strokeStyle = g; ctx.lineWidth = 1.2; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+  }
+
+  function frame(now) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(bg, 0, 0);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const s = now / 1000;
+    for (const st of stars) {
+      const a = reduced ? st.base : Math.max(0.05, Math.min(1, st.base + st.amp * Math.sin(s * st.speed + st.phase)));
+      ctx.globalAlpha = a;
+      ctx.fillStyle = st.color;
+      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, TAU); ctx.fill();
+      if (st.sparkle) {
+        const L = st.r * 5;
+        ctx.globalAlpha = a * 0.3;
+        ctx.fillRect(st.x - L, st.y - 0.35, L * 2, 0.7);
+        ctx.fillRect(st.x - 0.35, st.y - L, 0.7, L * 2);
+        ctx.globalAlpha = a * 0.18;
+        ctx.beginPath(); ctx.arc(st.x, st.y, st.r * 3.2, 0, TAU); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    drawMeteor(now);
+    if (!reduced) requestAnimationFrame(frame);
+  }
+
+  setup();
+  nextMeteor = performance.now() + 6000;
+  let lastW = w;
+  window.addEventListener("resize", () => {
+    if (window.innerWidth === lastW && Math.abs(window.innerHeight - h) < 140) return;
+    lastW = window.innerWidth; setup(); if (reduced) frame(0);
+  });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
